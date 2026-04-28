@@ -1,0 +1,45 @@
+name: Deploy CORS Config
+on:
+  push:
+    paths:
+      - 'domains.json' # Запускать только при изменении списка
+
+jobs:
+  deploy-nginx:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Nginx Config
+        run: python3 main.py
+
+      - name: Safe Deploy
+        run: |
+          TARGET="/etc/nginx/conf.d/cors.conf" # Укажите ваш путь
+          BACKUP_DIR="/home/leo/github/nginx"
+          mkdir -p $BACKUP_DIR
+
+          # 1. Делаем бэкап, если файл существует
+          if [ -f "$TARGET" ]; then
+            cp "$TARGET" "$BACKUP_DIR/cors.conf.bak"
+          fi
+
+          # 2. Копируем новый конфиг
+          sudo cp cors.conf "$TARGET"
+
+          # 3. Тестируем Nginx
+          if sudo nginx -t; then
+            echo "Nginx test passed. Reloading..."
+            sudo systemctl reload nginx
+            # Удаляем бэкап, если всё ок
+            rm -f "$BACKUP_DIR/cors.conf.bak"
+          else
+            echo "Nginx test failed! Rolling back..."
+            # Откат: если бэкап был, возвращаем его
+            if [ -f "$BACKUP_DIR/cors.conf.bak" ]; then
+              sudo mv "$BACKUP_DIR/cors.conf.bak" "$TARGET"
+            else
+              sudo rm "$TARGET"
+            fi
+            exit 1
+          fi
