@@ -15,8 +15,8 @@ jobs:
 
       - name: Safe Deploy
         run: |
-          TARGET="/etc/nginx/conf.d/cors.conf" # Укажите ваш путь
-          BACKUP_DIR="/home/leo/github/nginx"
+          TARGET="/home/leo/github/nginx/cors.conf" # Укажите ваш путь
+          BACKUP_DIR="/home/leo/github/nginx-bak"
           mkdir -p $BACKUP_DIR
 
           # 1. Делаем бэкап, если файл существует
